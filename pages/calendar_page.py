@@ -37,6 +37,9 @@ class CalendarPage(BasePage):
         year = int(self.find_visible(self.YEAR).text.strip())
         return year, list(calendar.month_name).index(month_name)
 
+    def wait_datepicker_closed(self):
+        return self.wait_invisible(self.DATEPICKER)
+
     def days_count(self):
         return len(self.driver.find_elements(*self.DAYS))
 
