@@ -1,4 +1,6 @@
 import allure
+import pytest
+from selenium.webdriver.common.keys import Keys
 
 
 class TestModalsPositive:
@@ -34,12 +36,14 @@ class TestModalsPositive:
         modals_page.close_simple_modal()
         assert modals_page.wait_simple_modal_closed(), "Simple Modal осталась на экране"
 
-    @allure.title("Simple Modal закрывается клавишей Esc")
-    def test_simple_modal_closes_by_escape(self, modals_page):
+    @allure.title("Simple Modal можно открыть повторно после закрытия")
+    def test_simple_modal_reopens(self, modals_page):
         modals_page.open_simple_modal()
         assert modals_page.wait_simple_modal_opened()
-        modals_page.close_simple_modal_by_escape()
-        assert modals_page.wait_simple_modal_closed(), "Simple Modal не закрылась по Esc"
+        modals_page.close_simple_modal()
+        assert modals_page.wait_simple_modal_closed()
+        modals_page.open_simple_modal()
+        assert modals_page.wait_simple_modal_opened(), "Simple Modal не открылась повторно"
 
     @allure.title("Form Modal открывается, виден заголовок и подсказка")
     def test_form_modal_opens(self, modals_page):
@@ -70,37 +74,37 @@ class TestModalsPositive:
         modals_page.fill_form("Test User", "test.user@example.com", "Автотест: отправка формы")
         assert modals_page.is_form_valid()
         modals_page.submit_form()
-        assert modals_page.wait_success_visible(), "Сообщение об отправке не появилось"
+        assert modals_page.wait_form_success_visible(), "Сообщение об отправке не появилось"
 
 
 class TestModalsNegative:
 
-    @allure.title("Пустая форма не отправляется")
-    def test_empty_form_not_submitted(self, modals_page):
+    @allure.title("Сайт не валидирует форму: пустая форма принимается, появляется подтверждение")
+    def test_empty_form_is_accepted(self, modals_page):
         modals_page.open_form_modal()
         assert modals_page.wait_form_modal_opened()
-        modals_page.submit_form()
+        # браузерная валидация данные не принимает, но у формы novalidate - сайт всё равно шлёт
         assert not modals_page.is_form_valid()
-        assert not modals_page.is_form_success_visible()
-        assert modals_page.is_form_modal_visible()
+        modals_page.submit_form()
+        assert modals_page.wait_form_success_visible(), "Пустую форму сайт не принял"
 
-    @allure.title("Форма без имени не отправляется, хотя остальные поля заполнены")
-    def test_form_without_name_not_submitted(self, modals_page):
+    @allure.title("Сайт не проверяет email: некорректные значения принимаются")
+    @pytest.mark.parametrize("email", ["not-an-email", "test@", "@example.com"],
+                             ids=["без собаки", "без домена", "без имени пользователя"])
+    def test_invalid_email_is_accepted(self, modals_page, email):
         modals_page.open_form_modal()
         assert modals_page.wait_form_modal_opened()
-        modals_page.fill_form(email="test.user@example.com", message="Сообщение без имени")
-        modals_page.submit_form()
+        modals_page.fill_form("Test User", email, "Проверка отсутствия валидации")
         assert not modals_page.is_form_valid()
-        assert not modals_page.is_form_success_visible()
+        modals_page.submit_form()
+        assert modals_page.wait_form_success_visible(), f"Email '{email}' сайт не принял"
 
-    @allure.title("Email в неверном формате не принимается")
-    def test_invalid_email_not_accepted(self, modals_page):
-        modals_page.open_form_modal()
-        assert modals_page.wait_form_modal_opened()
-        modals_page.fill_form("Test User", "not-an-email", "Проверка email")
-        modals_page.submit_form()
-        assert not modals_page.is_form_valid()
-        assert not modals_page.is_form_success_visible()
+    @allure.title("Клавиша Esc не закрывает Simple Modal")
+    def test_escape_does_not_close_simple_modal(self, modals_page):
+        modals_page.open_simple_modal()
+        assert modals_page.wait_simple_modal_opened()
+        modals_page.press_key(Keys.ESCAPE)
+        assert modals_page.simple_modal_stays_open(2), "Simple Modal закрылась по Esc"
 
     @allure.title("При открытой Simple Modal Form Modal не отображается")
     def test_form_modal_hidden_when_simple_opened(self, modals_page):

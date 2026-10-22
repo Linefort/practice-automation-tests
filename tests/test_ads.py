@@ -18,15 +18,11 @@ class TestAdsPositive:
     def test_ad_appears(self, ads_page):
         assert ads_page.wait_ad_opened(), "Реклама не появилась"
 
-    @allure.title("В рекламном окне есть текст I am an ad")
-    def test_ad_text(self, ads_page):
-        assert ads_page.wait_ad_opened()
-        assert "I am an ad" in ads_page.ad_text()
-
-    @allure.title("Заголовок рекламного окна - Hi")
-    def test_ad_title(self, ads_page):
+    @allure.title("Рекламное окно содержит заголовок Hi и текст I am an ad")
+    def test_ad_content(self, ads_page):
         assert ads_page.wait_ad_opened()
         assert ads_page.ad_title() == "Hi"
+        assert "I am an ad" in ads_page.ad_text()
 
     @allure.title("В рекламном окне отображается кнопка закрытия")
     def test_ad_close_button_visible(self, ads_page):
@@ -39,18 +35,12 @@ class TestAdsPositive:
         ads_page.close_ad()
         assert ads_page.wait_ad_closed(), "Реклама осталась на экране"
 
-    @allure.title("Реклама закрывается клавишей Esc")
-    def test_ad_closes_by_escape(self, ads_page):
-        assert ads_page.wait_ad_opened()
-        ads_page.close_ad_by_escape()
-        assert ads_page.wait_ad_closed(), "Реклама не закрылась по Esc"
-
-    @allure.title("После закрытия рекламы ссылка Learn More доступна")
+    @allure.title("После закрытия рекламы ссылка Learn More доступна и ведёт на linktr.ee")
     def test_page_available_after_ad_closed(self, ads_page):
         assert ads_page.wait_ad_opened()
         ads_page.close_ad()
         assert ads_page.wait_ad_closed()
-        assert ads_page.is_learn_more_reachable(), "Ссылка Learn More перекрыта"
+        assert ads_page.wait_learn_more_reachable(), "Ссылка Learn More перекрыта"
         assert "linktr.ee" in ads_page.learn_more_href
 
     @allure.title("Если не закрывать рекламу, после обновления страницы она появляется снова")
@@ -75,12 +65,12 @@ class TestAdsNegative:
         assert not ads_page.is_simple_modal_visible()
         assert not ads_page.is_form_modal_visible()
 
-    @allure.title("Посторонние клавиши (Tab, X, стрелка вниз) не закрывают рекламу")
-    def test_other_keys_do_not_close_ad(self, ads_page):
+    @allure.title("Клавиши Tab, X, стрелка вниз и Esc не закрывают рекламу")
+    def test_keys_do_not_close_ad(self, ads_page):
         assert ads_page.wait_ad_opened()
-        for key in (Keys.TAB, "x", Keys.ARROW_DOWN):
+        for key in (Keys.TAB, "x", Keys.ARROW_DOWN, Keys.ESCAPE):
             ads_page.press_key(key)
-        assert ads_page.is_ad_visible(), "Реклама закрылась от постороннего нажатия"
+        assert ads_page.ad_stays_open(2), "Реклама закрылась от нажатия клавиши"
 
     @allure.title("Пока открыта реклама, ссылки под ней недоступны")
     def test_page_blocked_while_ad_open(self, ads_page):

@@ -2,6 +2,7 @@ from calendar import monthrange
 from datetime import date
 
 import allure
+import pytest
 
 today = date.today()
 
@@ -24,10 +25,10 @@ class TestCalendarPositive:
         calendar_page.open_datepicker()
         assert calendar_page.is_datepicker_visible()
 
-    @allure.title("Календарь открывается на текущем месяце")
+    @allure.title("Календарь открывается на текущем месяце и годе")
     def test_current_month_shown(self, calendar_page):
         calendar_page.open_datepicker()
-        assert calendar_page.shown_month() == (today.year, today.month)
+        assert calendar_page.shown_year_month() == (today.year, today.month)
 
     @allure.title("Сегодняшний день выделен в календаре")
     def test_today_highlighted(self, calendar_page):
@@ -39,25 +40,15 @@ class TestCalendarPositive:
         calendar_page.select_date(today)
         assert calendar_page.value == today.isoformat()
 
-    @allure.title("Выбор даты в следующем месяце")
-    def test_select_date_next_month(self, calendar_page):
-        target = month_shift(1)
+    @allure.title("Выбор даты в прошлом месяце, следующем месяце и другом году")
+    @pytest.mark.parametrize("months", [-1, 1, 14],
+                             ids=["прошлый месяц", "следующий месяц", "через 14 месяцев"])
+    def test_select_shifted_date(self, calendar_page, months):
+        target = month_shift(months)
         calendar_page.select_date(target)
         assert calendar_page.value == target.isoformat()
 
-    @allure.title("Выбор даты в предыдущем месяце")
-    def test_select_date_previous_month(self, calendar_page):
-        target = month_shift(-1)
-        calendar_page.select_date(target)
-        assert calendar_page.value == target.isoformat()
-
-    @allure.title("Выбор даты в другом году (через 14 месяцев)")
-    def test_select_date_next_year(self, calendar_page):
-        target = month_shift(14)
-        calendar_page.select_date(target)
-        assert calendar_page.value == target.isoformat()
-
-    @allure.title("Дату можно ввести вручную")
+    @allure.title("Дату можно ввести вручную в формате ГГГГ-ММ-ДД")
     def test_type_date_manually(self, calendar_page):
         calendar_page.type_date("2025-01-15")
         assert calendar_page.value == "2025-01-15"
@@ -89,7 +80,8 @@ class TestCalendarNegative:
         assert not calendar_page.is_datepicker_visible()
         assert calendar_page.value == ""
 
-    @allure.title("Доступны для выбора только дни текущего месяца")
-    def test_only_current_month_days_selectable(self, calendar_page):
+    @allure.title("Дни соседних месяцев в сетке отмечены отдельно и не входят в текущий месяц")
+    def test_adjacent_month_days_are_separate(self, calendar_page):
         calendar_page.open_datepicker()
         assert calendar_page.days_count() == monthrange(today.year, today.month)[1]
+        assert calendar_page.edge_days_count() > 0
