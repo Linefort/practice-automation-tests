@@ -54,7 +54,14 @@ class BasePage:
 
     # на страницах есть скрытые копии окон и форм, поэтому смотрим на все найденные элементы
     def is_visible(self, locator):
-        return any(el.is_displayed() for el in self.driver.find_elements(*locator))
+        for element in self.driver.find_elements(*locator):
+            try:
+                if element.is_displayed():
+                    return True
+            except StaleElementReferenceException:
+                # элемент пропал со страницы, пока мы его проверяли (например, окно закрылось)
+                continue
+        return False
 
     def wait_visible(self, locator, timeout=10):
         return self.wait_until(lambda: self.is_visible(locator), timeout)
