@@ -70,14 +70,14 @@ class TestCalendarNegative:
     def test_click_outside_closes_datepicker(self, calendar_page):
         calendar_page.open_datepicker()
         calendar_page.click_outside()
-        assert not calendar_page.is_datepicker_visible()
+        assert calendar_page.wait_datepicker_closed(), "Календарь не закрылся"
         assert calendar_page.value == ""
 
     @allure.title("Esc закрывает календарь, дата не выбирается")
     def test_escape_closes_datepicker(self, calendar_page):
         calendar_page.open_datepicker()
         calendar_page.press_escape_in_input()
-        assert not calendar_page.is_datepicker_visible()
+        assert calendar_page.wait_datepicker_closed(), "Календарь не закрылся"
         assert calendar_page.value == ""
 
     @allure.title("Дни соседних месяцев в сетке отмечены отдельно и не входят в текущий месяц")
